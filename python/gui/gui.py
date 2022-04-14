@@ -12,6 +12,7 @@ try:
     from scipy.signal import blackman
     from scipy.signal import hanning
     from scipy.signal import boxcar
+    from scipy.signal import flattop
     from tkinter import *
     from tkinter.tix import *
 except:
@@ -20,7 +21,7 @@ except:
     print (">> install numpy, use \"pip install numpy\" in a command prompt.")
     print (">> install scipy, use \"pip install scipy\" in a command prompt.")
 
-dev_mode = False
+dev_mode = True
 """  
 #################################################################################
 ## OPEN SERIAL COMMUNICATION 
@@ -202,6 +203,8 @@ def core_fft(core_list, f_s, adc_resolution, window_enable, window_select):
             w = hanning(N)
         elif window_select == "boxcar":
             w = boxcar(N)
+        elif window_select == "flattop":
+            w = flattop(N)
         else:
             w = blackman(N)
             
@@ -332,18 +335,54 @@ def plot_iladata():
         print (">> Create fft")
         #########################################
         xf, yf = core_fft(data_1ch, f_s, adc_resolution, window_enable, window_select)
+
+        #########################################
+        ## SFDR calculation 
+        #########################################         
+        n = len(data_1ch)
+        fft_bin = f_s/n # [Hz/bin]
+        Spectre_ampl_dBFS = yf
+        Fin_dB = max(Spectre_ampl_dBFS[10:n//2])
+        Fin = np.argmax(Spectre_ampl_dBFS[10:n//2])*fft_bin/1e6
+        Fin_bin = np.argmax(Spectre_ampl_dBFS[10:n//2])
+        # num of points where not to calculate SFDR. To be used if Fin is not coherent
+        space =100 
+        sorted_data= np.append(np.sort(Spectre_ampl_dBFS[10:Fin_bin-space ]),np.sort(Spectre_ampl_dBFS[Fin_bin+space:n//2]))
+        y_hspur = sorted_data[len(sorted_data)-1]
+        #x_hspur = xf(np.where(yf == y_hspur))
+        SFDR_dBc = Fin_dB - y_hspur
+        print (">> ")
+        print (">> fin dBFS = "+str(Fin_dB))
+        sfdr_text = "SFDR dBFS = "+str(abs(y_hspur))
+        print (">> "+sfdr_text)
+        sfdr_text = "SFDR dBc = "+str(SFDR_dBc)
+        print (">> "+sfdr_text)
+        #print (">> "+str(y_hspur))
+        #print (">> "+str(x_hspur))
+        
         #########################################
         ## plot fft and time
         #########################################
-        fig1, ((axa, axb)) = plt.subplots(2)
-        fig1.suptitle('1CH mode')
-        axa.step(xf, yf, 'tab:blue')
-        axa.set_title("FFT")
-        axa.grid()
-        axb.step(time, data_1ch, 'tab:green')
-        axb.set_xlabel('Time')
-        axb.set_ylabel('Samples')
-        
+        if True:
+            fig1, ((axa)) = plt.subplots(1)
+            fig1.suptitle('EV12AQ600 ADC 1 channel mode')
+            axa.step(xf, yf, 'tab:blue')
+            axa.set_ylabel('Amplitude [dB]')
+            axa.set_ylim([-110, 0])
+            axa.set_xlim([0, f_s/2])
+            axa.set_xlabel('frequency [Hz]')
+            axa.set_title("FFT")
+            #axa.annotate(sfdr_text, xy=(33.5, y_hspur), xytext=(40, 4), fontsize=12,arrowprops=dict(facecolor='black', shrink=0.05))
+            axa.grid()
+        else:
+            fig1, ((axa, axb)) = plt.subplots(2)
+            fig1.suptitle('1CH mode')
+            axa.step(xf, yf, 'tab:blue')
+            axa.set_title("FFT")
+            axb.step(time, data_1ch, 'tab:green')
+            axb.set_ylabel('Samples')
+
+
     else:
         """ 4 CH MODE """
         if clk_mode == 3:
@@ -605,9 +644,9 @@ text = "ADC config"
 button102 = Button(root, text=text, width = button_width, command=adc_config, activebackground='green')
 button102.grid(row = r, column = 0)
 ##
-e25_options_list = ["blackman", "hanning", "boxcar", "no window"]
+e25_options_list = ["blackman", "hanning", "boxcar", "flattop", "no window"]
 e25v = StringVar(root)
-e25v.set("no window")
+e25v.set("blackman")
 e25 = tkinter.OptionMenu(root, e25v, *e25_options_list)
 e25.config(width=menu_width)
 e25.grid(row = r, column = 1)
