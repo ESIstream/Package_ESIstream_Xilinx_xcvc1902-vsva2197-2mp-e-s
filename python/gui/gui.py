@@ -346,9 +346,12 @@ def plot_iladata():
         Fin = np.argmax(Spectre_ampl_dBFS[10:n//2])*fft_bin/1e6
         Fin_bin = np.argmax(Spectre_ampl_dBFS[10:n//2])
         # num of points where not to calculate SFDR. To be used if Fin is not coherent
-        space =100 
-        sorted_data= np.append(np.sort(Spectre_ampl_dBFS[10:Fin_bin-space ]),np.sort(Spectre_ampl_dBFS[Fin_bin+space:n//2]))
-        y_hspur = sorted_data[len(sorted_data)-1]
+        space =100
+        #sorted_data= np.append(np.sort(Spectre_ampl_dBFS[10:Fin_bin-space ]),np.sort(Spectre_ampl_dBFS[Fin_bin+space:n//2]))
+        sorted_data_h= np.sort(Spectre_ampl_dBFS[Fin_bin+space:n//2])
+        sorted_data_l= np.sort(Spectre_ampl_dBFS[10:Fin_bin-space ])
+        y_hspur = max(sorted_data_h[len(sorted_data_h)-1],sorted_data_l[len(sorted_data_l)-1] )
+        print (y_hspur)
         #x_hspur = xf(np.where(yf == y_hspur))
         SFDR_dBc = Fin_dB - y_hspur
         print (">> ")
