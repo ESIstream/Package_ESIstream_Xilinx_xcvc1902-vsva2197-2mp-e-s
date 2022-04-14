@@ -21,7 +21,7 @@ except:
     print (">> install numpy, use \"pip install numpy\" in a command prompt.")
     print (">> install scipy, use \"pip install scipy\" in a command prompt.")
 
-dev_mode = True
+dev_mode = False
 """  
 #################################################################################
 ## OPEN SERIAL COMMUNICATION 
